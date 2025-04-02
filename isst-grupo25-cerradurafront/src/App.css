@@ -1,4 +1,4 @@
-.App {
+/* .App {
   text-align: center;
 }
 
@@ -35,4 +35,63 @@
   to {
     transform: rotate(360deg);
   }
+} */
+/* Importar Montserrat */
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap");
+
+:root {
+  --marron-claro: #a6866a;
+  --marron-oscuro: #8b6b50;
+  --texto: white;
+  --fondo: #edecec90;
+  --blanco: white;
+  --boton: white;
+  --textoboton: #8b6b50;
+  --boton-hover: #8b6b50;
+  --botontexto-hover: white;
+  --footer-bg: var(--blanco);
+  --footer-text: var(--marron-oscuro);
+}
+
+/* Estructura básica de la página */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* Contenedor principal para distribuir header, main y footer */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background-color: var(--marron-claro);
+  color: var(--texto);
+  padding: 20px;
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+/* Main content: fondo blanco */
+.main-content {
+  background-color: var(--blanco);
+  flex: 1;
+  padding: 20px;
+}
+
+/* Footer */
+.footer {
+  background-color: var(--footer-bg);
+  color: var(--footer-text);
+  text-align: center;
+  padding: 10px;
+  font-size: 14px;
 }
