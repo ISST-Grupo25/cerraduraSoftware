@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+// Componente que simula una cerradura con verificación de proximidad y control de apertura/cierre
 const Cerradura = () => {
+    // Estado de la cerradura ('cerrada' o 'abierta')
     const [estado, setEstado] = useState('cerrada');
-    const [error, setError] = useState('');
-    const [bluetooth, setBluetooth] = useState(false);
-    const videoRef = useRef(null);
-    const token = 'valid-token';
-    const [videoKey, setVideoKey] = useState(0); // Para forzar reinicio del componente de video
+    const [error, setError] = useState(''); // Estado para manejar errores
+    const [bluetooth, setBluetooth] = useState(false); // Simulación de proximidad por Bluetooth
+    const videoRef = useRef(null); // Referencia para el video
+    const token = 'valid-token'; // Token de autenticación (simulado)
+    const [videoKey, setVideoKey] = useState(0); // Para forzar reinicio del video
 
     // Efecto para reproducir el video si la cerradura está abierta
     useEffect(() => {
@@ -15,6 +17,7 @@ const Cerradura = () => {
         }
     }, [videoKey, estado]);
 
+    // Simula la verificación de proximidad por Bluetooth con una probabilidad del 90%
     const generarBluetooth = () => {
         const probabilidad = Math.random() < 0.9;
         setBluetooth(probabilidad);
@@ -25,6 +28,7 @@ const Cerradura = () => {
         }
     };
 
+    // Función para abrir la cerradura
     const abrirCerradura = () => {
         if (!bluetooth) {
             setError('Es necesario verificar primero la proximidad a la cerradura');
@@ -41,9 +45,9 @@ const Cerradura = () => {
             if (data.estado === 'abierta') {
                 setEstado('abierta');
                 setBluetooth(false);
-                // Forzamos el remount del video actualizando la key para reiniciarlo
-                setVideoKey(prev => prev + 1);
-                // La cerradura se mantendrá abierta 10 segundos antes de cerrarse
+                setVideoKey(prev => prev + 1); // Reinicia el video
+                
+                // La cerradura se cerrará automáticamente después de 6 segundos
                 setTimeout(() => {
                     cerrarCerradura();
                 }, 6000);
@@ -52,6 +56,7 @@ const Cerradura = () => {
         .catch(err => setError('No se pudo conectar al servidor'));
     };
 
+    // Función para cerrar la cerradura
     const cerrarCerradura = () => {
         fetch('http://localhost:3555/cerrarCerradura', {
             method: 'POST',
@@ -81,6 +86,7 @@ const Cerradura = () => {
             <h2>Estado: {estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</h2>
             
             <div style={{ display: 'flex', gap: '20px' }}>
+                {/* Botón para abrir la cerradura */}
                 <button 
                     onClick={abrirCerradura} 
                     disabled={!bluetooth}
@@ -92,6 +98,7 @@ const Cerradura = () => {
                 >
                     Abrir Cerradura
                 </button>
+                {/* Botón para verificar proximidad por Bluetooth */}
                 <button 
                     onClick={generarBluetooth}
                     style={{ 
@@ -103,7 +110,7 @@ const Cerradura = () => {
                 </button>
             </div>
 
-            {/* El video se muestra siempre, pero se reinicia actualizando su key */}
+            {/* Video que se reinicia cada vez que se abre la cerradura */}
             <video 
                 key={videoKey}
                 ref={videoRef}
@@ -114,15 +121,15 @@ const Cerradura = () => {
                     width: '800px', 
                     maxWidth: '90vw',
                     height: 'auto',
-                    backgroundColor: 'white' // Fondo blanco para el video
+                    backgroundColor: 'white'
                 }}
                 controlsList="nodownload nofullscreen noremoteplayback"
-                >
+            >
                 <source src="/cerradura.mp4" type="video/mp4" />
                 Tu navegador no soporta videos HTML5.
             </video>
 
-
+            {/* Muestra los errores si existen */}
             {error && (
                 <div style={{ 
                     color: 'red', 
