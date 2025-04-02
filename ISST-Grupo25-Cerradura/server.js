@@ -10,6 +10,7 @@ let cerraduraAbierta = false;  // Estado de la cerradura (cerrada o abierta)
 // Endpoint para abrir la cerradura
 app.post('/abrirCerradura', (req, res) => {
     const { token } = req.body;  // Recibir el token
+    const bluetooth = Math.random() < 0.9;  // Simular la conexión Bluetooth (50% de probabilidad de éxito)
 
     if (token) {  // Verificar si el token es válido
         cerraduraAbierta = true;
