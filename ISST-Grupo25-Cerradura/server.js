@@ -1,21 +1,37 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-let cerraduraAbierta = false;  // Estado de la cerradura (cerrada o abierta)
+// Crea el servidor HTTP
+const server = http.createServer(app);
+
+// Configura Socket.IO
+const io = require('socket.io')(server, {
+    cors: { origin: '*' }  // Ajusta el origin según tu seguridad
+});
+
+// Cuando un cliente se conecta
+io.on('connection', (socket) => {
+    console.log('Cliente conectado:', socket.id);
+});
+
+// Estado de la cerradura
+let cerraduraAbierta = false;
 
 // Endpoint para abrir la cerradura
 app.post('/abrirCerradura', (req, res) => {
-    const { token } = req.body;  // Recibir el token
-    const bluetooth = Math.random() < 0.9;  // Simular la conexión Bluetooth (50% de probabilidad de éxito)
-
-    if (token) {  // Verificar si el token es válido
+    const { token } = req.body;
+    // Aquí puedes simular la verificación de conexión Bluetooth si lo deseas
+    if (token) {
         cerraduraAbierta = true;
         console.log('Cerradura abierta con token:', token);
-        res.json({ estado: 'abierta' });  // Confirmar que la cerradura se abrió
+        // Envía el mensaje de "cerradura abierta" vía WebSocket a todos los clientes conectados
+        io.emit('lockStatus', { status: 'abierta', token });
+        res.json({ estado: 'abierta' });
     } else {
         res.status(400).json({ error: 'Token inválido' });
     }
@@ -24,17 +40,18 @@ app.post('/abrirCerradura', (req, res) => {
 // Endpoint para cerrar la cerradura
 app.post('/cerrarCerradura', (req, res) => {
     const { token } = req.body;
-
-    if (token) {  // Verificar si el token es válido
+    if (token) {
         cerraduraAbierta = false;
         console.log('Cerradura cerrada con token:', token);
-        res.json({ estado: 'cerrada' });  // Confirmar que la cerradura se cerró
+        // Envía el mensaje de "cerradura cerrada" vía WebSocket
+        io.emit('lockStatus', { status: 'cerrada', token });
+        res.json({ estado: 'cerrada' });
     } else {
         res.status(400).json({ error: 'Token inválido' });
     }
 });
 
-// Iniciar el servidor
-app.listen(3555, () => {
-    console.log('Backend2 escuchando en puerto 3555');
+// Inicia el servidor con Socket.IO
+server.listen(3555, () => {
+    console.log('Backend2 (Socket.IO) escuchando en puerto 3555');
 });
