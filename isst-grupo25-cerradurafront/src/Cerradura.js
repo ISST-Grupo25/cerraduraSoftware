@@ -1,35 +1,68 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-// Componente que simula una cerradura con verificación de proximidad y control de apertura/cierre
 const Cerradura = () => {
-    // Estado de la cerradura ('cerrada' o 'abierta')
     const [estado, setEstado] = useState('cerrada');
-    const [error, setError] = useState(''); // Estado para manejar errores
-    const [bluetooth, setBluetooth] = useState(false); // Simulación de proximidad por Bluetooth
-    const videoRef = useRef(null); // Referencia para el video
-    const token = 'valid-token'; // Token de autenticación (simulado)
-    const [videoKey, setVideoKey] = useState(0); // Para forzar reinicio del video
+    const [error, setError] = useState('');
+    const [bluetooth, setBluetooth] = useState(false);
+    const [batteryLevel, setBatteryLevel] = useState(20);
+    const [showBatteryWarningVideo, setShowBatteryWarningVideo] = useState(false);
+    const [showLowBatteryAttemptVideo, setShowLowBatteryAttemptVideo] = useState(false);
+    const videoRef = useRef(null);
+    const token = 'valid-token';
+    const [videoKey, setVideoKey] = useState(0);
 
-    // Efecto para reproducir el video si la cerradura está abierta
     useEffect(() => {
-        if (estado === 'abierta' && videoRef.current) {
-            videoRef.current.play().catch(e => console.error("Error al reproducir:", e));
+        if (estado === 'abierta' && batteryLevel > 15 && videoRef.current) {
+            videoRef.current.play().catch(err => console.error("Error al reproducir video:", err));
         }
-    }, [videoKey, estado]);
+    }, [videoKey, estado, batteryLevel]);
 
-    // Simula la verificación de proximidad por Bluetooth con una probabilidad del 90%
-    const generarBluetooth = () => {
-        const probabilidad = Math.random() < 0.9;
-        setBluetooth(probabilidad);
-        if (probabilidad) {
-            alert('Proximidad correctamente verificada. Ahora puedes abrir la cerradura');
+    useEffect(() => {
+        if (batteryLevel <= 15 && batteryLevel > 0) {
+            setShowBatteryWarningVideo(true);
         } else {
-            alert('No se pudo verificar la proximidad. Intenta nuevamente');
+            setShowBatteryWarningVideo(false);
         }
+    }, [batteryLevel]);
+
+    useEffect(() => {
+        const intervalo = setInterval(() => {
+            setBatteryLevel(prev => {
+                const nuevoNivel = Math.max(prev - 1, 0);
+    
+                // Enviar el nuevo nivel al backend
+                fetch('http://localhost:3555/actualizarBateria', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nivel: nuevoNivel }),
+                }).catch(err => console.error("Error al actualizar batería:", err));
+    
+                return nuevoNivel;
+            });
+        }, 5000);
+    
+        return () => clearInterval(intervalo);
+    }, []);
+    
+
+    const generarBluetooth = () => {
+        if (batteryLevel === 0) return;
+        const resultado = Math.random() < 0.9;
+        setBluetooth(resultado);
+        alert(resultado
+            ? 'Proximidad correctamente verificada. Ahora puedes abrir la cerradura'
+            : 'No se pudo verificar la proximidad. Intenta nuevamente');
     };
 
-    // Función para abrir la cerradura
     const abrirCerradura = () => {
+        if (batteryLevel === 0) return;
+
+        if (batteryLevel <= 15) {
+            setBluetooth(false);
+            setShowLowBatteryAttemptVideo(true);
+            return;
+        }        
+
         if (!bluetooth) {
             setError('Es necesario verificar primero la proximidad a la cerradura');
             return;
@@ -40,30 +73,25 @@ const Cerradura = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }),
         })
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
             if (data.estado === 'abierta') {
                 setEstado('abierta');
                 setBluetooth(false);
-                setVideoKey(prev => prev + 1); // Reinicia el video
-                
-                // La cerradura se cerrará automáticamente después de 6 segundos
-                setTimeout(() => {
-                    cerrarCerradura();
-                }, 6000);
+                setVideoKey(prev => prev + 1);
+                setTimeout(() => cerrarCerradura(), 6000);
             }
         })
-        .catch(err => setError('No se pudo conectar al servidor'));
+        .catch(() => setError('No se pudo conectar al servidor'));
     };
 
-    // Función para cerrar la cerradura
     const cerrarCerradura = () => {
         fetch('http://localhost:3555/cerrarCerradura', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }),
         })
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
             if (data.estado === 'cerrada') {
                 setEstado('cerrada');
@@ -81,55 +109,141 @@ const Cerradura = () => {
             flexDirection: 'column', 
             alignItems: 'center', 
             gap: '20px',
-            padding: '20px'
+            padding: '20px',
+            position: 'relative'
         }}>
             <h2>Estado: {estado === 'cerrada' ? 'Cerrada' : 'Abierta'}</h2>
-            
+
+            <div style={{ width: '300px', border: '1px solid #999', borderRadius: '5px', overflow: 'hidden', background: '#eee' }}>
+                <div style={{ 
+                    height: '20px',
+                    width: `${batteryLevel}%`,
+                    backgroundColor: batteryLevel <= 15 ? 'red' : '#4caf50',
+                    transition: 'width 0.5s ease'
+                }} />
+            </div>
+            <p style={{ margin: 0, fontWeight: 'bold' }}>
+                Nivel de batería: {batteryLevel}%
+            </p>
+
             <div style={{ display: 'flex', gap: '20px' }}>
-                {/* Botón para abrir la cerradura */}
                 <button 
                     onClick={abrirCerradura} 
-                    disabled={!bluetooth}
+                    disabled={!bluetooth || batteryLevel === 0}
                     style={{ 
                         padding: '10px 20px',
                         fontSize: '16px',
-                        cursor: !bluetooth ? 'not-allowed' : 'pointer'
+                        cursor: (!bluetooth || batteryLevel === 0) ? 'not-allowed' : 'pointer'
                     }}
                 >
                     Abrir Cerradura
                 </button>
-                {/* Botón para verificar proximidad por Bluetooth */}
                 <button 
                     onClick={generarBluetooth}
+                    disabled={batteryLevel === 0}
                     style={{ 
                         padding: '10px 20px',
-                        fontSize: '16px'
+                        fontSize: '16px',
+                        cursor: batteryLevel === 0 ? 'not-allowed' : 'pointer'
                     }}
                 >
                     Verificar Proximidad (Bluetooth)
                 </button>
             </div>
 
-            {/* Video que se reinicia cada vez que se abre la cerradura */}
-            <video 
-                key={videoKey}
-                ref={videoRef}
-                autoPlay={estado === 'abierta'}
-                muted
-                playsInline
-                style={{ 
-                    width: '800px', 
-                    maxWidth: '90vw',
-                    height: 'auto',
-                    backgroundColor: 'white'
-                }}
-                controlsList="nodownload nofullscreen noremoteplayback"
-            >
-                <source src="/cerradura.mp4" type="video/mp4" />
-                Tu navegador no soporta videos HTML5.
-            </video>
+            {/* Video principal */}
+            <div style={{ position: 'relative' }}>
+                <video 
+                    key={videoKey}
+                    ref={videoRef}
+                    autoPlay={estado === 'abierta' && batteryLevel > 15}
+                    muted
+                    playsInline
+                    style={{ 
+                        width: '800px', 
+                        maxWidth: '90vw',
+                        height: 'auto',
+                        backgroundColor: 'white'
+                    }}
+                    controlsList="nodownload nofullscreen noremoteplayback"
+                >
+                    <source src="/cerradura_con_bateria.mp4" type="video/mp4" />
+                    Tu navegador no soporta videos HTML5.
+                </video>
 
-            {/* Muestra los errores si existen */}
+                {/* Video batería baja en bucle */}
+                {showBatteryWarningVideo && !showLowBatteryAttemptVideo && batteryLevel > 0 && (
+                    <video
+                        loop
+                        autoPlay
+                        muted
+                        playsInline
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            backgroundColor: 'black',
+                            zIndex: 10,
+                            opacity: 0.95
+                        }}
+                        controlsList="nodownload nofullscreen noremoteplayback"
+                    >
+                        <source src="/cerradura_sin_bateria.mp4" type="video/mp4" />
+                        Tu navegador no soporta videos HTML5.
+                    </video>
+                )}
+
+                {/* Video de intento de apertura con batería baja */}
+                {showLowBatteryAttemptVideo && batteryLevel > 0 && (
+                    <video
+                        autoPlay
+                        muted
+                        playsInline
+                        onEnded={() => setShowLowBatteryAttemptVideo(false)}
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            backgroundColor: 'black',
+                            zIndex: 15
+                        }}
+                        controlsList="nodownload nofullscreen noremoteplayback"
+                    >
+                        <source src="/cerradura_sin_bateria_open.mp4" type="video/mp4" />
+                        Tu navegador no soporta videos HTML5.
+                    </video>
+                )}
+
+                {/* Bloqueo total cuando batería = 0 */}
+                {batteryLevel === 0 && (
+                    <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'black',
+                        color: 'white',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        fontSize: '24px',
+                        fontWeight: 'bold',
+                        zIndex: 20,
+                        textAlign: 'center',
+                        padding: '20px'
+                    }}>
+                        Batería agotada. El sistema se apaga.
+                    </div>
+                )}
+            </div>
+
             {error && (
                 <div style={{ 
                     color: 'red', 
