@@ -9,15 +9,30 @@ app.use(cors()); // Habilita CORS para permitir solicitudes desde cualquier orig
 
 // Crea el servidor HTTP utilizando Express
 const server = http.createServer(app);
+// Simulación del nivel actual de batería
+let nivelBateria = 87; // o cualquier valor realista
 
 // Configura Socket.IO para la comunicación en tiempo real
 const io = require('socket.io')(server, {
-    cors: { origin: '*' }  // Permite conexiones desde cualquier origen (ajustar en producción)
+    cors: { origin: '*' },  // Permite conexiones desde cualquier origen (ajustar en producción)
+    transports: ['websocket'],
+    allowEIO3: true, 
 });
 
-// Evento cuando un cliente se conecta a Socket.IO
+
 io.on('connection', (socket) => {
     console.log('Cliente conectado:', socket.id);
+
+    socket.on('getBatteryLevel', (data) => {
+        const token = data.token; // ahora sí recoges el token del mensaje
+        console.log("Solicitud de nivel de batería recibida para token:", token);
+
+        // Responder al cliente con el nivel de batería simulado
+        socket.emit('batteryLevel', {
+            nivel: nivelBateria,
+            token: token
+        });
+    });
 });
 
 // Estado de la cerradura (abierta o cerrada)
