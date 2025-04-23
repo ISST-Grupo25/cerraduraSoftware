@@ -103,6 +103,25 @@ const Cerradura = () => {
         });
     };
 
+    const recargarBateria = () => {
+        const esGestor = window.confirm("¿Eres el gestor?");
+        if (esGestor) {
+            fetch('http://localhost:3555/actualizarBateria', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nivel: 100 }),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.exito) {
+                    setBatteryLevel(100);
+                    alert('Batería recargada al 100%');
+                }
+            })
+            .catch(() => alert('Error al recargar la batería'));
+        }
+    };
+    
     return (
         <div style={{ 
             display: 'flex', 
@@ -138,6 +157,7 @@ const Cerradura = () => {
                 >
                     Abrir Cerradura
                 </button>
+                
                 <button 
                     onClick={generarBluetooth}
                     disabled={batteryLevel === 0}
@@ -149,6 +169,18 @@ const Cerradura = () => {
                 >
                     Verificar Proximidad (Bluetooth)
                 </button>
+
+                <button
+                    onClick={recargarBateria}
+                    style={{
+                        padding: '10px 20px',
+                        fontSize: '16px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Recarga de Batería
+                </button>
+
             </div>
 
             {/* Video principal */}
