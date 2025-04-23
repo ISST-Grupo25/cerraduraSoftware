@@ -12,13 +12,6 @@ const Cerradura = () => {
     const [videoKey, setVideoKey] = useState(0);
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setBatteryLevel(prev => Math.max(prev - 1, 0));
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
         if (estado === 'abierta' && batteryLevel > 15 && videoRef.current) {
             videoRef.current.play().catch(err => console.error("Error al reproducir video:", err));
         }
@@ -31,6 +24,26 @@ const Cerradura = () => {
             setShowBatteryWarningVideo(false);
         }
     }, [batteryLevel]);
+
+    useEffect(() => {
+        const intervalo = setInterval(() => {
+            setBatteryLevel(prev => {
+                const nuevoNivel = Math.max(prev - 1, 0);
+    
+                // Enviar el nuevo nivel al backend
+                fetch('http://localhost:3555/actualizarBateria', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nivel: nuevoNivel }),
+                }).catch(err => console.error("Error al actualizar batería:", err));
+    
+                return nuevoNivel;
+            });
+        }, 5000);
+    
+        return () => clearInterval(intervalo);
+    }, []);
+    
 
     const generarBluetooth = () => {
         if (batteryLevel === 0) return;

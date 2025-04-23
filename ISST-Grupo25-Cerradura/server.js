@@ -9,8 +9,6 @@ app.use(cors()); // Habilita CORS para permitir solicitudes desde cualquier orig
 
 // Crea el servidor HTTP utilizando Express
 const server = http.createServer(app);
-// Simulación del nivel actual de batería
-let nivelBateria = 87; // o cualquier valor realista
 
 // Configura Socket.IO para la comunicación en tiempo real
 const io = require('socket.io')(server, {
@@ -76,3 +74,25 @@ app.post('/cerrarCerradura', (req, res) => {
 server.listen(3555, () => {
     console.log('Backend2 (Socket.IO) escuchando en puerto 3555');
 });
+
+let nivelBateria = 100;
+
+// Endpoint para actualizar el nivel de batería
+app.post('/actualizarBateria', (req, res) => {
+    const { nivel } = req.body;
+    if (nivel >= 0 && nivel <= 100) {
+        nivelBateria = nivel;
+        io.emit('bateriaActualizada', { nivel }); // Notifica a todos los clientes
+        console.log(`Nivel de batería recibido: ${nivel}%`);
+        res.json({ exito: true, nivel });
+    } else {
+        res.status(400).json({ error: 'Nivel de batería inválido' });
+    }
+});
+
+// Endpoint para obtener el nivel de batería
+app.get('/nivelBateria', (req, res) => {
+    res.json({ nivel: nivelBateria });
+});
+
+
