@@ -9,8 +9,6 @@ app.use(cors()); // Habilita CORS para permitir solicitudes desde cualquier orig
 
 // Crea el servidor HTTP utilizando Express
 const server = http.createServer(app);
-// Simulación del nivel actual de batería
-let nivelBateria = 87; // o cualquier valor realista
 
 // Configura Socket.IO para la comunicación en tiempo real
 const io = require('socket.io')(server, {
